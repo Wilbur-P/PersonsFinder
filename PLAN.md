@@ -27,24 +27,33 @@
 
 ## 3) Package/file structure
 - Keep base package: `com.persons.finder`.
-- Planned structure:
+- Implemented structure:
   - `controller/PersonController.kt`
   - `dto/request/CreatePersonRequest.kt`
   - `dto/request/UpdateLocationRequest.kt`
   - `dto/response/PersonCreatedResponse.kt`
+  - `dto/response/LocationUpdatedResponse.kt`
   - `dto/response/NearbyPersonResponse.kt`
   - `dto/response/ErrorResponse.kt`
   - `entity/PersonEntity.kt`
   - `repository/PersonRepository.kt`
   - `service/PersonService.kt`
   - `service/AiBioService.kt`
+  - `service/PromptSafetyService.kt`
+  - `service/RateLimiterService.kt`
   - `service/impl/PersonServiceImpl.kt`
   - `service/impl/DeterministicMockAiBioService.kt`
-  - `service/PromptInjectionGuard.kt`
   - `service/DistanceCalculator.kt`
-  - `util/UlidGenerator.kt` (or equivalent helper)
+  - `util/UlidGenerator.kt`
+  - `config/WebMvcConfig.kt`
+  - `exception/InvalidInputException.kt`
   - `exception/PersonNotFoundException.kt`
+  - `exception/RateLimitExceededException.kt`
   - `exception/GlobalExceptionHandler.kt`
+  - `resources/application.properties`
+  - `resources/application-dev.properties`
+  - `AI_LOG.md`
+  - `SECURITY.md`
 
 ## 4) Data model
 - Single `persons` table (simple and sufficient for scope):
@@ -90,7 +99,7 @@
 - Do not send `name` or `location` to AI service to reduce privacy risk.
 
 ## 7) Prompt injection mitigation approach
-- Add `PromptInjectionGuard` before calling `AiBioService`:
+- Add `PromptSafetyService` before calling `AiBioService`:
   - Normalize whitespace and trim input.
   - Enforce allowlist character policy for `jobTitle` and each hobby.
   - Reject suspicious instruction-like patterns (example: `ignore instructions`, `system:`, `assistant:`, code fences, control characters).
@@ -129,7 +138,7 @@
 ## 10) Test plan
 - Unit tests:
   - `DeterministicMockAiBioService` returns stable output for identical input.
-  - `PromptInjectionGuard` accepts normal text and rejects malicious payloads.
+  - `PromptSafetyService` accepts normal text and rejects malicious payloads.
   - Nearby search logic filters by radius and sorts by distance correctly.
 - Integration tests (Spring Boot + MockMvc + H2):
   - `POST /persons` happy path + validation failure.
