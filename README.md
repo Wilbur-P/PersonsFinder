@@ -109,6 +109,12 @@ Machine specs for the run:
 
 Note: numbers are environment-dependent and should be treated as local reference values.
 
+## Known Limitations
+- No authentication/authorization is implemented (challenge scope).
+- Rate limiting is in-memory and suitable for a single-node setup only.
+- Prompt-injection protection is heuristic-based and not a complete guarantee.
+- Benchmark results are local reference values, not CI performance gates.
+
 ## Security and AI Notes
 - `AI_LOG.md`
 - `SECURITY.md`
