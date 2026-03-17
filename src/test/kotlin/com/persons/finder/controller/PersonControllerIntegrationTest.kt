@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.put
     properties = [
         "app.rate-limit.max-requests=3",
         "app.rate-limit.window-seconds=60",
+        "app.rate-limit.trust-forwarded-headers=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
     ]
 )
@@ -86,6 +87,25 @@ class PersonControllerIntegrationTest {
                 status { isBadRequest() }
                 jsonPath("$.message") { value("Validation failed") }
                 jsonPath("$.fieldErrors.name") { exists() }
+            }
+    }
+
+    @Test
+    fun `POST persons rejects unsafe name values`() {
+        val payload = mapOf(
+            "name" to "<script>alert(1)</script>",
+            "jobTitle" to "Backend Engineer",
+            "hobbies" to listOf("Chess"),
+            "location" to mapOf("latitude" to 37.7749, "longitude" to -122.4194)
+        )
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("name contains disallowed characters") }
             }
     }
 
@@ -216,6 +236,7 @@ class PersonControllerIntegrationTest {
         }
             .andExpect {
                 status { isBadRequest() }
+                jsonPath("$.message") { value("limit must be between 1 and 200") }
             }
     }
 
@@ -238,6 +259,59 @@ class PersonControllerIntegrationTest {
             param("longitude", "0")
             param("radiusKm", "1")
             param("limit", "1")
+        }
+            .andExpect {
+                status { isTooManyRequests() }
+            }
+    }
+
+    @Test
+    fun `forwarded header spoofing does not bypass rate limit`() {
+        repeat(3) { index ->
+            mockMvc.get("/persons/nearby") {
+                param("latitude", "0")
+                param("longitude", "0")
+                param("radiusKm", "1")
+                header("X-Forwarded-For", "203.0.113.${index + 10}")
+            }
+                .andExpect {
+                    status { isOk() }
+                }
+        }
+
+        mockMvc.get("/persons/nearby") {
+            param("latitude", "0")
+            param("longitude", "0")
+            param("radiusKm", "1")
+            header("X-Forwarded-For", "198.51.100.77")
+        }
+            .andExpect {
+                status { isTooManyRequests() }
+            }
+    }
+
+    @Test
+    fun `route template keying prevents id-based rate-limit bypass`() {
+        val payload = mapOf("latitude" to 1.0, "longitude" to 1.0)
+        val ids = listOf(
+            "01H00000000000000000000201",
+            "01H00000000000000000000202",
+            "01H00000000000000000000203"
+        )
+
+        ids.forEach { id ->
+            mockMvc.put("/persons/$id/location") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(payload)
+            }
+                .andExpect {
+                    status { isNotFound() }
+                }
+        }
+
+        mockMvc.put("/persons/01H00000000000000000000204/location") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
         }
             .andExpect {
                 status { isTooManyRequests() }

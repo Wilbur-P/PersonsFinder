@@ -1,38 +1,29 @@
-# Unfixed Issues
+# Issue Status
 
-Current unfixed issues in this worktree, prioritized for submission readiness.
+All previously listed issues in this worktree have been addressed.
 
-## Must fix before submission
+## Resolved
 
-1. Rate limiting can be spoofed via `X-Forwarded-For`.
-- Evidence: `src/main/kotlin/com/persons/finder/config/WebMvcConfig.kt` reads client IP from header directly.
-- Fix: trust forwarded headers only behind trusted proxy config, otherwise use `remoteAddr`.
+1. Forwarded-header spoofing in rate limiting.
+- Fix: `WebMvcConfig` now trusts `X-Forwarded-For` only when explicitly enabled and only when `remoteAddr` is in configured trusted proxies.
 
-2. Rate-limit key uses raw request URI and can be bypassed by changing path IDs.
-- Evidence: `src/main/kotlin/com/persons/finder/service/RateLimiterService.kt` uses `"$endpoint|$clientId"`.
-- Fix: key by normalized route template + method (example: `PUT:/persons/{id}/location`).
+2. Rate-limit bypass via raw URI path IDs.
+- Fix: rate limit key now uses `METHOD + route template` (for example `PUT:/persons/{id}/location`) instead of raw request URI.
 
-3. Prompt injection checks are heuristic and not broadly tested.
-- Evidence: limited regex patterns and narrow negative tests.
-- Fix: add stronger normalization (unicode/invisible chars), expand attack cases, and add tests for bypass attempts.
+3. Prompt injection heuristics and bypass coverage.
+- Fix: `PromptSafetyService` now performs NFKC normalization, strips control/invisible chars, detects obfuscated prompt payloads, and has expanded unit tests.
 
-4. README run instructions are incomplete for reproducibility.
-- Current gap: no explicit Java/JAVA_HOME prerequisite and no expected verification output.
-- Fix: add prerequisites, exact commands, and expected success checks.
+4. README reproducibility gaps.
+- Fix: added prerequisites (`java`, `JAVA_HOME`), exact run/test commands, and expected success/log checks.
 
-## Optional improvements
+5. Validation-cap duplication drift.
+- Fix: centralized nearby `limit` cap enforcement in `PersonServiceImpl`; removed controller hardcoded limit cap annotations.
 
-5. Validation cap duplication can drift.
-- Evidence: controller hardcodes `limit <= 200`, service uses configurable `app.nearby.max-limit`.
-- Fix: centralize limit validation in one place.
+6. Unsafe `name` reflection risk.
+- Fix: added strict server-side `name` sanitization policy in `PersonServiceImpl` and integration test coverage.
 
-6. `name` field is reflected to API clients with minimal sanitization.
-- Risk: downstream XSS if a client renders without escaping.
-- Fix: apply stricter input policy for `name` or document output-encoding responsibility clearly.
+7. Benchmark disabled and undocumented.
+- Fix: benchmark is now isolated as `benchmarkTest`, runnable explicitly, and README includes captured p50/p95 + machine specs.
 
-7. Benchmark remains disabled and results are undocumented.
-- Evidence: benchmark test is `@Disabled`; README has no p50/p95 data.
-- Fix: run benchmark and add machine specs + measured results to README.
-
-8. SECURITY claims are not explicitly mapped to implementation/tests.
-- Fix: add a short traceability section in `SECURITY.md` (control -> class -> test).
+8. SECURITY traceability gap.
+- Fix: added `Control Traceability` section mapping controls to implementation and tests.

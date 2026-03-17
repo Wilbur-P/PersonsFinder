@@ -38,3 +38,15 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.named<Test>("test") {
+    exclude("**/benchmark/**")
+}
+
+tasks.register<Test>("benchmarkTest") {
+    description = "Runs benchmark tests"
+    group = "verification"
+    useJUnitPlatform()
+    include("**/*BenchmarkTest.class")
+    maxHeapSize = "2g"
+}

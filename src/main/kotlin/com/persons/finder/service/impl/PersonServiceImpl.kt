@@ -14,6 +14,7 @@ import com.persons.finder.service.DistanceCalculator
 import com.persons.finder.service.PersonService
 import com.persons.finder.service.PromptSafetyService
 import com.persons.finder.util.UlidGenerator
+import java.text.Normalizer
 import java.util.LinkedHashMap
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -34,6 +35,9 @@ class PersonServiceImpl(
     private val maxLimit: Int
 ) : PersonService {
 
+    private val allowedNamePattern = Regex("^[\\p{L}][\\p{L} .'-]{0,79}$")
+    private val controlOrInvisibleChars = Regex("[\\p{Cc}\\p{Cf}]")
+
     @Transactional
     override fun createPerson(request: CreatePersonRequest): PersonCreatedResponse {
         val sanitizedBioInput = promptSafetyService.sanitizeForBio(request.jobTitle, request.hobbies)
@@ -41,7 +45,7 @@ class PersonServiceImpl(
 
         val person = PersonEntity(
             id = ulidGenerator.nextUlid(),
-            name = normalizeWhitespace(request.name),
+            name = sanitizeName(request.name),
             jobTitle = sanitizedBioInput.jobTitle,
             hobbiesCsv = sanitizedBioInput.hobbies.joinToString(","),
             bio = bio,
@@ -197,7 +201,22 @@ class PersonServiceImpl(
         }
     }
 
-    private fun normalizeWhitespace(input: String): String {
-        return input.replace(Regex("\\s+"), " ").trim()
+    private fun sanitizeName(input: String): String {
+        val normalized = Normalizer.normalize(input, Normalizer.Form.NFKC)
+            .replace(controlOrInvisibleChars, "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+        if (normalized.isBlank()) {
+            throw InvalidInputException("name must not be blank")
+        }
+        if (normalized.length > 80) {
+            throw InvalidInputException("name must be <= 80 characters")
+        }
+        if (!allowedNamePattern.matches(normalized)) {
+            throw InvalidInputException("name contains disallowed characters")
+        }
+
+        return normalized
     }
 }

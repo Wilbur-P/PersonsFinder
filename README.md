@@ -11,7 +11,7 @@ Spring Boot (Kotlin) implementation of the Persons Finder challenge.
 - Java 11
 - Spring Boot 2.7
 - Kotlin + Gradle Kotlin DSL
-- H2 in-memory DB
+- H2
 - Spring Data JPA
 - Bean Validation
 
@@ -23,13 +23,30 @@ Simple layered structure:
 - `dto`
 - `exception`
 
-AI generation is isolated behind `AiBioService`, with deterministic mock implementation.
+AI generation is isolated behind `AiBioService` with deterministic mock implementation.
+
+## Prerequisites
+- Java 11 installed
+- `JAVA_HOME` pointing to Java 11
+
+Verify environment:
+```bash
+java -version
+./gradlew --version
+```
+Expected checks:
+- `java -version` shows Java 11.
+- `./gradlew --version` shows Gradle `7.6.1`.
 
 ## Run Locally
 ```bash
 ./gradlew bootRun
 ```
-Service starts at `http://localhost:8080`.
+Service base URL: `http://localhost:8080`
+
+Expected startup confirmation in logs:
+- `Tomcat started on port(s): 8080 (http)`
+- `Started ApplicationStarter`
 
 ## API Docs (Swagger/OpenAPI)
 Swagger is disabled by default. Run with dev profile:
@@ -65,18 +82,32 @@ curl 'http://localhost:8080/persons/nearby?latitude=37.7749&longitude=-122.4194&
 ```
 
 ## Test
+Run the regular suite (benchmark excluded):
 ```bash
 ./gradlew test
 ```
+Expected result:
+- `BUILD SUCCESSFUL`
 
-## Benchmark Scenario
-A benchmark test scenario for 1,000,000 records is included and intentionally disabled:
-- `src/test/kotlin/com/persons/finder/benchmark/NearbyBenchmarkTest.kt`
-
-Run it manually by removing `@Disabled` and executing:
+## Benchmark
+Benchmark is isolated from normal tests and runs via dedicated task:
 ```bash
-./gradlew test --tests com.persons.finder.benchmark.NearbyBenchmarkTest
+./gradlew benchmarkTest
 ```
+
+Recent local benchmark run (`2026-03-17`):
+- Seed size: `1,000,000` records
+- Seed time: `19533ms`
+- Nearby timings: `[73, 1, 1, 1, 0]` ms
+- p50: `1ms`
+- p95: `1ms`
+
+Machine specs for the run:
+- OS: `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64`
+- CPU: `Intel(R) Core(TM) Ultra 5 225H` (`14` cores)
+- Java: `OpenJDK 11.0.30`
+
+Note: numbers are environment-dependent and should be treated as local reference values.
 
 ## Security and AI Notes
 - `AI_LOG.md`

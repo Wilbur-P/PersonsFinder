@@ -9,8 +9,6 @@ import com.persons.finder.service.PersonService
 import javax.validation.Valid
 import javax.validation.constraints.DecimalMax
 import javax.validation.constraints.DecimalMin
-import javax.validation.constraints.Max
-import javax.validation.constraints.Min
 import javax.validation.constraints.Pattern
 import org.springframework.http.HttpStatus
 import org.springframework.validation.annotation.Validated
@@ -61,8 +59,6 @@ class PersonController(
         @DecimalMin(value = "0.000001", inclusive = true, message = "radiusKm must be > 0")
         radiusKm: Double,
         @RequestParam(required = false)
-        @Min(value = 1, message = "limit must be >= 1")
-        @Max(value = 200, message = "limit must be <= 200")
         limit: Int?
     ): List<NearbyPersonResponse> {
         return personService.findNearby(latitude, longitude, radiusKm, limit)

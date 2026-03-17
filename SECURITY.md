@@ -1,30 +1,40 @@
 # SECURITY
 
-## How inputs are sanitized before sending to the LLM
-For this challenge, bio generation is behind `AiBioService` and currently uses a deterministic mock. If a live LLM is enabled, sanitization happens before that service call:
+## How inputs are sanitized before sending to the AI service
+Bio generation is behind `AiBioService` and currently uses a deterministic mock. If a live model is enabled later, sanitization happens before that service call.
 
+Controls:
 - Data minimization: only `jobTitle` and `hobbies` are used for bio generation.
 - PII exclusion: `name` and `location` are not sent to the AI service.
-- Normalization: trim text and collapse repeated whitespace.
+- Unicode normalization: NFKC normalization plus control/invisible character stripping.
 - Validation: enforce max lengths and hobby-count limits.
 - Character allowlist: accept only expected safe characters for `jobTitle` and hobbies.
-- Prompt-injection checks: reject instruction-like payloads (for example `ignore instructions`, `system:`, `assistant:`, code fences, and control characters).
-- Failure behaviour: return `400 Bad Request` with a safe error message.
+- Prompt-injection checks: reject instruction-like and obfuscated payloads.
+- Failure behavior: return `400 Bad Request` with a safe message.
 
-## Privacy risks of sending PII (name/location) to a third-party model
+## Privacy risks of sending PII (name/location) to third-party models
 - Retention risk: prompts/responses may be stored by the provider.
 - Re-identification risk: name + location can directly identify individuals.
 - Compliance risk: cross-border processing, subprocessors, and data residency issues.
 - Breach/supply-chain risk: third-party compromise exposes customer data.
-- Over-collection risk: sending unnecessary PII increases impact if leaked.
+- Over-collection risk: unnecessary PII increases incident impact.
 
 ## High-security banking architecture approach
-For a banking-grade system, treat external LLMs as untrusted for raw customer PII:
+For a banking-grade system, treat external LLMs as untrusted for raw customer PII.
 
-- Keep raw PII inside bank-controlled systems; do not send raw name/location to public LLM APIs.
-- Introduce a privacy gateway that redacts/tokenizes data and enforces policy before model calls.
-- Prefer private model hosting (bank VPC/on-prem) with no-training/no-retention guarantees.
+- Keep raw PII inside bank-controlled systems.
+- Introduce a privacy gateway for redaction/tokenization and policy enforcement.
+- Prefer private model hosting with no-training/no-retention guarantees.
 - Encrypt in transit and at rest (customer-managed keys where possible).
-- Enforce least-privilege access, strong audit logging, and continuous monitoring.
-- Apply DLP and egress controls; require vendor legal controls (DPA, residency, subprocessors).
-- Regularly run prompt-injection and data-exfiltration security tests.
+- Enforce least privilege, audited access, and continuous monitoring.
+- Apply DLP/egress controls and vendor legal controls (DPA, residency, subprocessors).
+- Run recurring prompt-injection/data-exfiltration security tests.
+
+## Control Traceability
+| Control | Implementation | Verification |
+|---|---|---|
+| Prompt input normalization + injection filtering | `PromptSafetyService` | `PromptSafetyServiceTest` |
+| AI data minimization (exclude name/location) | `PersonServiceImpl#createPerson` -> `AiBioService.generateBio(jobTitle, hobbies)` | Code-path verification + integration flow in `PersonControllerIntegrationTest` |
+| Strict name policy to reduce unsafe reflected content | `PersonServiceImpl#sanitizeName` | `PersonControllerIntegrationTest` (`POST persons rejects unsafe name values`) |
+| Route-aware, spoof-resistant rate limiting | `WebMvcConfig`, `RateLimiterService` | `PersonControllerIntegrationTest` (`high request burst`, `forwarded header spoofing`, `route template keying`) |
+| Generic error responses (no stack traces) | `GlobalExceptionHandler` | `PersonControllerIntegrationTest` (`error response does not leak stack traces or class names`) |

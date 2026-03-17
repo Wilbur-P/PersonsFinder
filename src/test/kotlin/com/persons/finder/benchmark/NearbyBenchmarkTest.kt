@@ -4,18 +4,24 @@ import com.persons.finder.entity.PersonEntity
 import com.persons.finder.repository.PersonRepository
 import com.persons.finder.service.PersonService
 import com.persons.finder.service.RateLimiterService
+import javax.persistence.EntityManager
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.TestPropertySource
 
 @SpringBootTest
-@TestPropertySource(properties = ["spring.jpa.hibernate.ddl-auto=create-drop"])
-@Disabled("Manual benchmark scenario for challenge documentation")
+@TestPropertySource(
+    properties = [
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.url=jdbc:h2:file:./build/benchmark-db/personsfinder;AUTO_SERVER=FALSE;DB_CLOSE_ON_EXIT=FALSE"
+    ]
+)
+@Tag("benchmark")
 class NearbyBenchmarkTest {
 
     @Autowired
@@ -26,6 +32,9 @@ class NearbyBenchmarkTest {
 
     @Autowired
     private lateinit var rateLimiterService: RateLimiterService
+
+    @Autowired
+    private lateinit var entityManager: EntityManager
 
     @BeforeEach
     fun setup() {
@@ -57,6 +66,7 @@ class NearbyBenchmarkTest {
                 if (batch.size == batchSize) {
                     personRepository.saveAll(batch)
                     personRepository.flush()
+                    entityManager.clear()
                     batch.clear()
                 }
             }
@@ -64,6 +74,7 @@ class NearbyBenchmarkTest {
             if (batch.isNotEmpty()) {
                 personRepository.saveAll(batch)
                 personRepository.flush()
+                entityManager.clear()
                 batch.clear()
             }
         }

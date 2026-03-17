@@ -22,9 +22,9 @@ class RateLimiterService(
 
     private val counters = ConcurrentHashMap<String, Counter>()
 
-    fun checkLimit(endpoint: String, clientId: String) {
+    fun checkLimit(routeKey: String, clientId: String) {
         val now = Instant.now().epochSecond
-        val key = "$endpoint|$clientId"
+        val key = "$routeKey|$clientId"
 
         counters.compute(key) { _, existing ->
             if (existing == null || now - existing.windowStartEpochSecond >= windowSeconds) {
