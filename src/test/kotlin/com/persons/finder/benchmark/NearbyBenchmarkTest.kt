@@ -3,7 +3,6 @@ package com.persons.finder.benchmark
 import com.persons.finder.entity.PersonEntity
 import com.persons.finder.repository.PersonRepository
 import com.persons.finder.service.PersonService
-import com.persons.finder.service.RateLimiterService
 import javax.persistence.EntityManager
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
@@ -31,15 +30,11 @@ class NearbyBenchmarkTest {
     private lateinit var personService: PersonService
 
     @Autowired
-    private lateinit var rateLimiterService: RateLimiterService
-
-    @Autowired
     private lateinit var entityManager: EntityManager
 
     @BeforeEach
     fun setup() {
         personRepository.deleteAll()
-        rateLimiterService.clearAll()
     }
 
     @Test

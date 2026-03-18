@@ -3,7 +3,6 @@ package com.persons.finder.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.persons.finder.entity.PersonEntity
 import com.persons.finder.repository.PersonRepository
-import com.persons.finder.service.RateLimiterService
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.hasSize
 import org.hamcrest.Matchers.matchesPattern
@@ -24,9 +23,6 @@ import org.springframework.test.web.servlet.put
 @AutoConfigureMockMvc
 @TestPropertySource(
     properties = [
-        "app.rate-limit.max-requests=3",
-        "app.rate-limit.window-seconds=60",
-        "app.rate-limit.trust-forwarded-headers=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
     ]
 )
@@ -41,13 +37,9 @@ class PersonControllerIntegrationTest {
     @Autowired
     private lateinit var personRepository: PersonRepository
 
-    @Autowired
-    private lateinit var rateLimiterService: RateLimiterService
-
     @BeforeEach
     fun setUp() {
         personRepository.deleteAll()
-        rateLimiterService.clearAll()
     }
 
     @Test
@@ -110,6 +102,65 @@ class PersonControllerIntegrationTest {
     }
 
     @Test
+    fun `POST persons returns field error when location is missing`() {
+        val payload = mapOf(
+            "name" to "Alice",
+            "jobTitle" to "Backend Engineer",
+            "hobbies" to listOf("Chess")
+        )
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.location") { value("location is required") }
+            }
+    }
+
+    @Test
+    fun `POST persons returns field error when location latitude is missing`() {
+        val payload = mapOf(
+            "name" to "Alice",
+            "jobTitle" to "Backend Engineer",
+            "hobbies" to listOf("Chess"),
+            "location" to mapOf("longitude" to -122.4194)
+        )
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors[\"location.latitude\"]") { value("latitude is required") }
+            }
+    }
+
+    @Test
+    fun `POST persons returns field error when location longitude is missing`() {
+        val payload = mapOf(
+            "name" to "Alice",
+            "jobTitle" to "Backend Engineer",
+            "hobbies" to listOf("Chess"),
+            "location" to mapOf("latitude" to 37.7749)
+        )
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors[\"location.longitude\"]") { value("longitude is required") }
+            }
+    }
+
+    @Test
     fun `PUT location updates existing person`() {
         val existing = personRepository.save(
             PersonEntity(
@@ -161,6 +212,36 @@ class PersonControllerIntegrationTest {
         }
             .andExpect {
                 status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `PUT location returns field error when latitude is missing`() {
+        val payload = mapOf("longitude" to 22.22)
+
+        mockMvc.put("/persons/01H00000000000000000000099/location") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.latitude") { value("latitude is required") }
+            }
+    }
+
+    @Test
+    fun `PUT location returns field error when longitude is missing`() {
+        val payload = mapOf("latitude" to 11.11)
+
+        mockMvc.put("/persons/01H00000000000000000000099/location") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.longitude") { value("longitude is required") }
             }
     }
 
@@ -237,84 +318,6 @@ class PersonControllerIntegrationTest {
             .andExpect {
                 status { isBadRequest() }
                 jsonPath("$.message") { value("limit must be between 1 and 200") }
-            }
-    }
-
-    @Test
-    fun `high request burst returns 429`() {
-        repeat(3) {
-            mockMvc.get("/persons/nearby") {
-                param("latitude", "0")
-                param("longitude", "0")
-                param("radiusKm", "1")
-                param("limit", "1")
-            }
-                .andExpect {
-                    status { isOk() }
-                }
-        }
-
-        mockMvc.get("/persons/nearby") {
-            param("latitude", "0")
-            param("longitude", "0")
-            param("radiusKm", "1")
-            param("limit", "1")
-        }
-            .andExpect {
-                status { isTooManyRequests() }
-            }
-    }
-
-    @Test
-    fun `forwarded header spoofing does not bypass rate limit`() {
-        repeat(3) { index ->
-            mockMvc.get("/persons/nearby") {
-                param("latitude", "0")
-                param("longitude", "0")
-                param("radiusKm", "1")
-                header("X-Forwarded-For", "203.0.113.${index + 10}")
-            }
-                .andExpect {
-                    status { isOk() }
-                }
-        }
-
-        mockMvc.get("/persons/nearby") {
-            param("latitude", "0")
-            param("longitude", "0")
-            param("radiusKm", "1")
-            header("X-Forwarded-For", "198.51.100.77")
-        }
-            .andExpect {
-                status { isTooManyRequests() }
-            }
-    }
-
-    @Test
-    fun `route template keying prevents id-based rate-limit bypass`() {
-        val payload = mapOf("latitude" to 1.0, "longitude" to 1.0)
-        val ids = listOf(
-            "01H00000000000000000000201",
-            "01H00000000000000000000202",
-            "01H00000000000000000000203"
-        )
-
-        ids.forEach { id ->
-            mockMvc.put("/persons/$id/location") {
-                contentType = MediaType.APPLICATION_JSON
-                content = objectMapper.writeValueAsString(payload)
-            }
-                .andExpect {
-                    status { isNotFound() }
-                }
-        }
-
-        mockMvc.put("/persons/01H00000000000000000000204/location") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(payload)
-        }
-            .andExpect {
-                status { isTooManyRequests() }
             }
     }
 

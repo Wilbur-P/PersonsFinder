@@ -42,6 +42,7 @@ class PersonServiceImpl(
     override fun createPerson(request: CreatePersonRequest): PersonCreatedResponse {
         val sanitizedBioInput = promptSafetyService.sanitizeForBio(request.jobTitle, request.hobbies)
         val bio = aiBioService.generateBio(sanitizedBioInput)
+        val location = request.location!!
 
         val person = PersonEntity(
             id = ulidGenerator.nextUlid(),
@@ -49,8 +50,8 @@ class PersonServiceImpl(
             jobTitle = sanitizedBioInput.jobTitle,
             hobbiesCsv = sanitizedBioInput.hobbies.joinToString(","),
             bio = bio,
-            latitude = request.location.latitude,
-            longitude = request.location.longitude
+            latitude = location.latitude!!,
+            longitude = location.longitude!!
         )
 
         val created = personRepository.save(person)
@@ -64,8 +65,8 @@ class PersonServiceImpl(
         val person = personRepository.findById(id)
             .orElseThrow { PersonNotFoundException(id) }
 
-        person.latitude = request.latitude
-        person.longitude = request.longitude
+        person.latitude = request.latitude!!
+        person.longitude = request.longitude!!
 
         val updated = personRepository.save(person)
         return LocationUpdatedResponse(

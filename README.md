@@ -111,7 +111,7 @@ Note: numbers are environment-dependent and should be treated as local reference
 
 ## Known Limitations
 - No authentication/authorization is implemented (challenge scope).
-- Rate limiting is in-memory and suitable for a single-node setup only.
+- No application-level rate limiting is implemented; production deployments should enforce throttling at the API gateway, load balancer, ingress, or WAF layer.
 - Prompt-injection protection is heuristic-based and not a complete guarantee.
 - Benchmark results are local reference values, not CI performance gates.
 

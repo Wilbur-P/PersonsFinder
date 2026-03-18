@@ -30,6 +30,7 @@ For a banking-grade system, treat external LLMs as untrusted for raw customer PI
 - Enforce least privilege, audited access, and continuous monitoring.
 - Apply DLP/egress controls and vendor legal controls (DPA, residency, subprocessors).
 - Run recurring prompt-injection/data-exfiltration security tests.
+- Enforce rate limiting and abusive-traffic controls at API gateway, load balancer, ingress, or WAF layers rather than inside this app.
 
 ## Control Traceability
 | Control | Implementation | Verification |
@@ -37,5 +38,5 @@ For a banking-grade system, treat external LLMs as untrusted for raw customer PI
 | Prompt input normalization + injection filtering | `PromptSafetyService` | `PromptSafetyServiceTest` |
 | AI data minimization + structured AI input | `PersonServiceImpl#createPerson` -> `PromptSafetyService.sanitizeForBio(...)` -> `AiBioService.generateBio(BioGenerationInput)` | Code-path verification + service tests + integration flow in `PersonControllerIntegrationTest` |
 | Strict name policy to reduce unsafe reflected content | `PersonServiceImpl#sanitizeName` | `PersonControllerIntegrationTest` (`POST persons rejects unsafe name values`) |
-| Route-aware, spoof-resistant rate limiting | `WebMvcConfig`, `RateLimiterService` | `PersonControllerIntegrationTest` (`high request burst`, `forwarded header spoofing`, `route template keying`) |
+| Infrastructure-managed rate limiting | API gateway / load balancer / ingress / WAF outside the app | Documented limitation and deployment guidance |
 | Generic error responses (no stack traces) | `GlobalExceptionHandler` | `PersonControllerIntegrationTest` (`error response does not leak stack traces or class names`) |

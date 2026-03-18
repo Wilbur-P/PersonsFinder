@@ -85,18 +85,6 @@ class GlobalExceptionHandler {
         )
     }
 
-    @ExceptionHandler(RateLimitExceededException::class)
-    fun handleRateLimitExceeded(
-        ex: RateLimitExceededException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        return buildResponse(
-            status = HttpStatus.TOO_MANY_REQUESTS,
-            message = ex.message ?: "Too many requests",
-            path = request.requestURI
-        )
-    }
-
     @ExceptionHandler(Exception::class)
     fun handleGenericException(request: HttpServletRequest): ResponseEntity<ErrorResponse> {
         return buildResponse(

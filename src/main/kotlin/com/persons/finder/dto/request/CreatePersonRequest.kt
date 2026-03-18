@@ -20,14 +20,16 @@ data class CreatePersonRequest(
     val hobbies: List<@NotBlank(message = "hobbies cannot contain blank values") @Size(max = 40, message = "hobby must be <= 40 characters") String>,
     @field:Valid
     @field:NotNull(message = "location is required")
-    val location: LocationRequest
+    val location: LocationRequest?
 )
 
 data class LocationRequest(
+    @field:NotNull(message = "latitude is required")
     @field:DecimalMin(value = "-90.0", message = "latitude must be >= -90")
     @field:DecimalMax(value = "90.0", message = "latitude must be <= 90")
-    val latitude: Double,
+    val latitude: Double?,
+    @field:NotNull(message = "longitude is required")
     @field:DecimalMin(value = "-180.0", message = "longitude must be >= -180")
     @field:DecimalMax(value = "180.0", message = "longitude must be <= 180")
-    val longitude: Double
+    val longitude: Double?
 )
