@@ -23,7 +23,7 @@ Simple layered structure:
 - `dto`
 - `exception`
 
-AI generation is isolated behind `AiBioService` with deterministic mock implementation.
+AI generation is isolated behind `AiBioService` with deterministic mock implementation and structured `BioGenerationInput`.
 
 ## Prerequisites
 - Java 11 installed
@@ -118,3 +118,5 @@ Note: numbers are environment-dependent and should be treated as local reference
 ## Security and AI Notes
 - `AI_LOG.md`
 - `SECURITY.md`
+
+Bio generation uses a typed input object rather than prompt concatenation. `jobTitle` and `hobbies` are sanitized into a structured `BioGenerationInput` before the AI service is called, which reduces delimiter ambiguity and keeps PII out of the AI path.

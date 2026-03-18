@@ -16,6 +16,13 @@ class PromptSafetyServiceTest {
             listOf(" Board Games ", "Trail running")
         )
 
+        assertEquals(
+            BioGenerationInput(
+                jobTitle = "Platform Engineer",
+                hobbies = listOf("Board Games", "Trail running")
+            ),
+            sanitized
+        )
         assertEquals("Platform Engineer", sanitized.jobTitle)
         assertEquals(listOf("Board Games", "Trail running"), sanitized.hobbies)
     }

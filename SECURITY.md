@@ -1,11 +1,12 @@
 # SECURITY
 
 ## How inputs are sanitized before sending to the AI service
-Bio generation is behind `AiBioService` and currently uses a deterministic mock. If a live model is enabled later, sanitization happens before that service call.
+Bio generation is behind `AiBioService` and currently uses a deterministic mock. If a live model is enabled later, sanitization happens before that service call. The service contract uses structured `BioGenerationInput` rather than prompt concatenation.
 
 Controls:
 - Data minimization: only `jobTitle` and `hobbies` are used for bio generation.
 - PII exclusion: `name` and `location` are not sent to the AI service.
+- Structured input boundary: sanitized fields are passed as typed fields, which avoids delimiter collisions and prompt-string assembly mistakes.
 - Unicode normalization: NFKC normalization plus control/invisible character stripping.
 - Validation: enforce max lengths and hobby-count limits.
 - Character allowlist: accept only expected safe characters for `jobTitle` and hobbies.
@@ -34,7 +35,7 @@ For a banking-grade system, treat external LLMs as untrusted for raw customer PI
 | Control | Implementation | Verification |
 |---|---|---|
 | Prompt input normalization + injection filtering | `PromptSafetyService` | `PromptSafetyServiceTest` |
-| AI data minimization (exclude name/location) | `PersonServiceImpl#createPerson` -> `AiBioService.generateBio(jobTitle, hobbies)` | Code-path verification + integration flow in `PersonControllerIntegrationTest` |
+| AI data minimization + structured AI input | `PersonServiceImpl#createPerson` -> `PromptSafetyService.sanitizeForBio(...)` -> `AiBioService.generateBio(BioGenerationInput)` | Code-path verification + service tests + integration flow in `PersonControllerIntegrationTest` |
 | Strict name policy to reduce unsafe reflected content | `PersonServiceImpl#sanitizeName` | `PersonControllerIntegrationTest` (`POST persons rejects unsafe name values`) |
 | Route-aware, spoof-resistant rate limiting | `WebMvcConfig`, `RateLimiterService` | `PersonControllerIntegrationTest` (`high request burst`, `forwarded header spoofing`, `route template keying`) |
 | Generic error responses (no stack traces) | `GlobalExceptionHandler` | `PersonControllerIntegrationTest` (`error response does not leak stack traces or class names`) |

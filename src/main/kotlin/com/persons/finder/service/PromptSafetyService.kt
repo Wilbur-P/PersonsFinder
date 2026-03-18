@@ -7,11 +7,6 @@ import org.springframework.stereotype.Service
 @Service
 class PromptSafetyService {
 
-    data class SanitizedBioInput(
-        val jobTitle: String,
-        val hobbies: List<String>
-    )
-
     private val allowedPattern = Regex("^[A-Za-z0-9 .,'&()\\-+/]{1,80}$")
     private val controlOrInvisibleChars = Regex("[\\p{Cc}\\p{Cf}]")
 
@@ -23,7 +18,7 @@ class PromptSafetyService {
         Regex("(?i)\\b(act|pretend) as\\b")
     )
 
-    fun sanitizeForBio(jobTitle: String, hobbies: List<String>): SanitizedBioInput {
+    fun sanitizeForBio(jobTitle: String, hobbies: List<String>): BioGenerationInput {
         val sanitizedJobTitle = normalizeInput(jobTitle)
         validateField("jobTitle", sanitizedJobTitle, 80)
 
@@ -37,7 +32,10 @@ class PromptSafetyService {
             normalized
         }
 
-        return SanitizedBioInput(sanitizedJobTitle, sanitizedHobbies)
+        return BioGenerationInput(
+            jobTitle = sanitizedJobTitle,
+            hobbies = sanitizedHobbies
+        )
     }
 
     private fun validateField(fieldName: String, value: String, maxLength: Int) {

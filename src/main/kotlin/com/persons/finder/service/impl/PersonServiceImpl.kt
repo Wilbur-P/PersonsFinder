@@ -41,7 +41,7 @@ class PersonServiceImpl(
     @Transactional
     override fun createPerson(request: CreatePersonRequest): PersonCreatedResponse {
         val sanitizedBioInput = promptSafetyService.sanitizeForBio(request.jobTitle, request.hobbies)
-        val bio = aiBioService.generateBio(sanitizedBioInput.jobTitle, sanitizedBioInput.hobbies)
+        val bio = aiBioService.generateBio(sanitizedBioInput)
 
         val person = PersonEntity(
             id = ulidGenerator.nextUlid(),
