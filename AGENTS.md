@@ -1,20 +1,15 @@
 # Goal
-Deliver a small but polished backend take-home project for the Persons Finder challenge.
-
-# Constraints
-- Time box: 2 hours
-- Code must run locally with minimal setup
-- Prefer small complete functionality over broad unfinished functionality
+Deliver a small but polished backend project for Persons Finder.
 
 # Technical direction
 - Use Spring Boot with the existing Gradle Kotlin DSL setup
-- Prefer H2 for the challenge
+- Prefer H2 for this reference implementation
 - Keep architecture simple: controller / service / repository / dto / exception
 - Implement:
   - POST /persons
   - PUT /persons/{id}/location
   - GET /persons/nearby
-- Add AI_LOG.md and SECURITY.md
+- Add `docs/SECURITY.md`
 - Add Swagger/OpenAPI if quick to wire up
 
 # AI architecture
@@ -33,4 +28,4 @@ Deliver a small but polished backend take-home project for the Persons Finder ch
 # Review rules
 - Flag anything that looks stitched together by AI
 - Flag inconsistent naming and unnecessary abstractions
-- Flag missing validation, weak docs, or unverified run instructions
+- Flag missing validation, weak documentation, or unverified run instructions
