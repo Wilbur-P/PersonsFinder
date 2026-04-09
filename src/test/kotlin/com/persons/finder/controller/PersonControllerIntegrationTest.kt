@@ -103,11 +103,9 @@ class PersonControllerIntegrationTest {
 
     @Test
     fun `POST persons returns field error when location is missing`() {
-        val payload = mapOf(
-            "name" to "Alice",
-            "jobTitle" to "Backend Engineer",
-            "hobbies" to listOf("Chess")
-        )
+        val payload = validCreatePersonPayload().apply {
+            remove("location")
+        }
 
         mockMvc.post("/persons") {
             contentType = MediaType.APPLICATION_JSON
@@ -122,12 +120,11 @@ class PersonControllerIntegrationTest {
 
     @Test
     fun `POST persons returns field error when location latitude is missing`() {
-        val payload = mapOf(
-            "name" to "Alice",
-            "jobTitle" to "Backend Engineer",
-            "hobbies" to listOf("Chess"),
-            "location" to mapOf("longitude" to -122.4194)
-        )
+        val payload = validCreatePersonPayload().apply {
+            this["location"] = mutableMapOf(
+                "longitude" to -122.4194
+            )
+        }
 
         mockMvc.post("/persons") {
             contentType = MediaType.APPLICATION_JSON
@@ -142,12 +139,68 @@ class PersonControllerIntegrationTest {
 
     @Test
     fun `POST persons returns field error when location longitude is missing`() {
-        val payload = mapOf(
-            "name" to "Alice",
-            "jobTitle" to "Backend Engineer",
-            "hobbies" to listOf("Chess"),
-            "location" to mapOf("latitude" to 37.7749)
-        )
+        val payload = validCreatePersonPayload().apply {
+            this["location"] = mutableMapOf(
+                "latitude" to 37.7749
+            )
+        }
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors[\"location.longitude\"]") { value("longitude is required") }
+            }
+    }
+
+    @Test
+    fun `POST persons returns field error when location is null`() {
+        val payload = validCreatePersonPayload().apply {
+            this["location"] = null
+        }
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.location") { value("location is required") }
+            }
+    }
+
+    @Test
+    fun `POST persons returns field error when location latitude is null`() {
+        val payload = validCreatePersonPayload().apply {
+            this["location"] = mutableMapOf(
+                "latitude" to null,
+                "longitude" to -122.4194
+            )
+        }
+
+        mockMvc.post("/persons") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors[\"location.latitude\"]") { value("latitude is required") }
+            }
+    }
+
+    @Test
+    fun `POST persons returns field error when location longitude is null`() {
+        val payload = validCreatePersonPayload().apply {
+            this["location"] = mutableMapOf(
+                "latitude" to 37.7749,
+                "longitude" to null
+            )
+        }
 
         mockMvc.post("/persons") {
             contentType = MediaType.APPLICATION_JSON
@@ -217,7 +270,9 @@ class PersonControllerIntegrationTest {
 
     @Test
     fun `PUT location returns field error when latitude is missing`() {
-        val payload = mapOf("longitude" to 22.22)
+        val payload = validUpdateLocationPayload().apply {
+            remove("latitude")
+        }
 
         mockMvc.put("/persons/01H00000000000000000000099/location") {
             contentType = MediaType.APPLICATION_JSON
@@ -232,7 +287,43 @@ class PersonControllerIntegrationTest {
 
     @Test
     fun `PUT location returns field error when longitude is missing`() {
-        val payload = mapOf("latitude" to 11.11)
+        val payload = validUpdateLocationPayload().apply {
+            remove("longitude")
+        }
+
+        mockMvc.put("/persons/01H00000000000000000000099/location") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.longitude") { value("longitude is required") }
+            }
+    }
+
+    @Test
+    fun `PUT location returns field error when latitude is null`() {
+        val payload = validUpdateLocationPayload().apply {
+            this["latitude"] = null
+        }
+
+        mockMvc.put("/persons/01H00000000000000000000099/location") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }
+            .andExpect {
+                status { isBadRequest() }
+                jsonPath("$.message") { value("Validation failed") }
+                jsonPath("$.fieldErrors.latitude") { value("latitude is required") }
+            }
+    }
+
+    @Test
+    fun `PUT location returns field error when longitude is null`() {
+        val payload = validUpdateLocationPayload().apply {
+            this["longitude"] = null
+        }
 
         mockMvc.put("/persons/01H00000000000000000000099/location") {
             contentType = MediaType.APPLICATION_JSON
@@ -337,5 +428,24 @@ class PersonControllerIntegrationTest {
 
         assertFalse(responseBody.contains("Exception"))
         assertFalse(responseBody.contains("com.persons.finder"))
+    }
+
+    private fun validCreatePersonPayload(): MutableMap<String, Any?> {
+        return mutableMapOf(
+            "name" to "Alice",
+            "jobTitle" to "Backend Engineer",
+            "hobbies" to listOf("Chess"),
+            "location" to mutableMapOf(
+                "latitude" to 37.7749,
+                "longitude" to -122.4194
+            )
+        )
+    }
+
+    private fun validUpdateLocationPayload(): MutableMap<String, Any?> {
+        return mutableMapOf(
+            "latitude" to 11.11,
+            "longitude" to 22.22
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.persons.finder.exception
 
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.persons.finder.dto.response.ErrorResponse
 import java.time.LocalDateTime
 import javax.servlet.http.HttpServletRequest
@@ -52,8 +53,21 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun handleHttpMessageNotReadable(
+        ex: HttpMessageNotReadableException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
+        val missingField = extractMissingFieldPath(ex)
+        if (missingField != null) {
+            return buildResponse(
+                status = HttpStatus.BAD_REQUEST,
+                message = "Validation failed",
+                path = request.requestURI,
+                fieldErrors = mapOf(
+                    missingField to "${missingField.substringAfterLast('.')} is required"
+                )
+            )
+        }
+
         return buildResponse(
             status = HttpStatus.BAD_REQUEST,
             message = "Malformed JSON request",
@@ -112,5 +126,30 @@ class GlobalExceptionHandler {
                     fieldErrors = fieldErrors
                 )
             )
+    }
+
+    private fun extractMissingFieldPath(ex: HttpMessageNotReadableException): String? {
+        val mappingException = generateSequence(ex.cause) { it.cause }
+            .filterIsInstance<JsonMappingException>()
+            .firstOrNull()
+            ?: return null
+
+        val segments = mappingException.path
+            .mapNotNull { it.fieldName }
+            .toMutableList()
+
+        if (segments.isEmpty()) {
+            val message = mappingException.originalMessage
+            val parameterMatch = Regex("parameter ([A-Za-z0-9_]+)").find(message)
+            val propertyMatch = Regex("property '([^']+)'").find(message)
+            val fallbackField = parameterMatch?.groupValues?.get(1) ?: propertyMatch?.groupValues?.get(1)
+            if (fallbackField != null) {
+                segments += fallbackField
+            }
+        }
+
+        return segments
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(".")
     }
 }
