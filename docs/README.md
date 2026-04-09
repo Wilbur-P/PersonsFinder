@@ -123,11 +123,7 @@ Example response:
 [
   {
     "id": "01JQ7RPYQ67V2N8S1GGF95K2RA",
-    "name": "Alice",
-    "jobTitle": "Backend Engineer",
     "bio": "Curious Backend Engineer who enjoys chess and hiking. Signature 5fd2ac.",
-    "latitude": 37.7749,
-    "longitude": -122.4194,
     "distanceKm": 0.0
   }
 ]

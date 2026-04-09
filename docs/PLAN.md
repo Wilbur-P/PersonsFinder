@@ -83,7 +83,7 @@
 - `GET /persons/nearby?latitude=&longitude=&radiusKm=&limit=`
   - Validation: required query parameters, `radiusKm > 0`, server-side max radius cap, and `limit` within allowed bounds.
   - Response: `200 OK` list of nearby persons sorted by ascending distance and truncated to `limit`.
-  - Item fields: `id`, `name`, `jobTitle`, `bio`, `latitude`, `longitude`, `distanceKm`.
+  - Item fields: `id`, `bio`, `distanceKm`.
   - Errors: `400` for validation.
 
 ## 6. AI Biography Generation Approach

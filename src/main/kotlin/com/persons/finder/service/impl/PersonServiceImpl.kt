@@ -118,11 +118,7 @@ class PersonServiceImpl(
             .map { (entity, distance) ->
                 NearbyPersonResponse(
                     id = entity.id,
-                    name = entity.name,
-                    jobTitle = entity.jobTitle,
                     bio = entity.bio,
-                    latitude = entity.latitude,
-                    longitude = entity.longitude,
                     distanceKm = distance
                 )
             }

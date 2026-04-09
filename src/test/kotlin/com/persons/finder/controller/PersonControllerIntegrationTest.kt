@@ -380,6 +380,12 @@ class PersonControllerIntegrationTest {
                 status { isOk() }
                 jsonPath("$", hasSize<Any>(2))
                 jsonPath("$[0].id") { value("01H00000000000000000000101") }
+                jsonPath("$[0].bio") { value("Bio") }
+                jsonPath("$[0].distanceKm") { isNumber() }
+                jsonPath("$[0].name") { doesNotExist() }
+                jsonPath("$[0].jobTitle") { doesNotExist() }
+                jsonPath("$[0].latitude") { doesNotExist() }
+                jsonPath("$[0].longitude") { doesNotExist() }
                 jsonPath("$[1].id") { value("01H00000000000000000000102") }
             }
     }
